@@ -1,0 +1,283 @@
+1. raspberry pi 4B into the plastic box, with power fan (red pin to 2nd GPIO pin on the outside, black pin to 3rd pin on the out side; 5V and GND), fix the nails for the fan box
+
+2. Check the type-C power line (with the switch in lowered mode), plug in power socket, and push the switch to lifted mode, the fan should spin
+
+3. On Windows, download the raspberry os imager to : C:\Users\Bill Huang\SRC\raspberry\
++ https://www.raspberrypi.org/software/
+
+4. SD-Reader + 32GB SD card in windows 10 USB port, diskmgmt.msc, create new volume E:\, labelled as "RASPI", format as FAT32
+
+5. on windows 10, run imager as administrator, select "RASPBERRY PI OS FULL (32-bit)", storage as E:\, click "WRITE" to write the image to the SD card, wait for about 30 mins for it to finish		
+
+6. insert SD card into the motherboard
+
+7. put batteries into mouse and keyboard, put dangle into USB 2.0 port
+
+8. Monitor: 
+- connect power to monitor
+- HDMI connector from monitor to board
+- USB to mini android plug-in (touch-screen) 
+
+8.5 connect ethernet cable to board, connect power to board
+
+9. push power switch on, wait for monitor to display the bootup
+
+10. go with the screen step by step to set up region, language, wifi, etc. username: pi  pwd: James@2004
+IP address: 192.168.3.225 (via ethernet)
+
+11. when system suggest get update, do it. After done, open command on raspberry pi, type ifconfig to get IP addresses, uplug ethernet cable so we can use wifi , ifconfig shows WLAN IP as 192.168.3.226
+
+12. Click menu > preferences > raspberry pi config > Enable Camera; Enable SSH; Enable VNC services
+- on windows or mac, install PUTTY client, from 
+https://www.putty.org/
+ -- https://www.chiark.greenend.org.uk/~sgtatham/putty/latest.html
+ -- windows: https://the.earth.li/~sgtatham/putty/latest/w64/putty-64bit-0.74-installer.msi
+
+
+13. install vnc viewer from https://www.realvnc.com/en/connect/download/viewer/     after which we can connect to PI via IP
+
+14. on pi:  
+	menu > preferences > recommended software > programming > install visual studio code
+	
+	BASH:
+	sudo apt-get update
+	python --version  
+	python3 --version   
+	whereis python3   ---> 
+	echo "alias python=/usr/bin/python3.7" >> ~/.bashrc
+	echo "alias pip=/usr/bin/pip3" >> ~/.bashrc
+	source ~/.bashrc
+	python --version
+	pip --version
+
+15. on windows or mac, install winscp or Cyberduck (for sFTP) clients: https://winscp.net/eng/index.php     for mac: https://cyberduck.io/
+
+
+16. audio not working, right upper corner, right click on speaker to change to analog from hdmi, then
+	sudo apt update
+	sudo apt -y purge="pulseaudio"
+	reboot
+Now audio speaker disappears. 
+-- Right-click top bar to add "volume control" back in, 
+-- reinstall pulseaudio: sudo apt-get install pulseaudio
+-- various: sudo raspi-config; alsamixer; sudo apt-get upgrade raspberrypi-ui-mods
+*** found out 13.3 inch screen has no audio support
+*** After connecting to home TV, audio works.   speaker-test -c2 -t wave
+
+17. Camera: make sure power is off;  install camera; power on
+- raspistill -o bill.jpg 
+- gpicview bill.jpg
+- raspivid -o billvideo.h264
+- vlc billvideo.h264
+
+18. type:
+pip --version
+whereis pip
+make sure pip is pip3
+
+(otherwise pip refers to 2.7 version, not 3.7 version, how to find out: pip --version; pip3 --version; whereis pip, where is pip3)
+
+19. Do these: 
+(ref: https://www.digikey.com/en/maker/projects/how-to-perform-object-detection-with-tensorflow-lite-on-raspberry-pi/b929e1519c7c43d5b2c6f89984883588)
+
+mkdir -p Src/Python/tflite
+cd Src/Python/tflite
+python -m pip install virtualenv
+python -m venv tflite-env
+source tflite-env/bin/activate
+
+sudo apt -y install libjpeg-dev libtiff5-dev libjasper-dev libpng12-dev libavcodec-dev libavformat-dev libswscale-dev libv4l-dev libxvidcore-dev libx264-dev
+
+sudo apt -y install qt4-dev-tools libatlas-base-dev libhdf5-103 
+
+python -m pip install opencv-contrib-python==4.1.0.25
+
+uname -m   ===> armv7l
+python --version
+
+python -m pip install https://github.com/google-coral/pycoral/releases/download/v1.0.1/tflite_runtime-2.5.0-cp37-cp37m-linux_armv7l.whl
+
+20: download starter model:
+https://storage.googleapis.com/download.tensorflow.org/models/tflite/coco_ssd_mobilenet_v1_1.0_quant_2018_06_29.zip
+(the following one is not working: https://tfhub.dev/tensorflow/lite-model/ssd_mobilenet_v1/1/metadata/1?lite-format=tflite ; likely format changed)
+
+it will save to ~/Downloads/coco_ssd_mobilenet_v1_1.0_quant_2018_06_29.zip
+
+Then:
+
+mkdir -p ~/Src/Python/tflite/object_detection/model_dir
+cd ~/Src/Python/tflite/object_detection
+mv ~/Downloads/coco_ssd_mobilenet_v1_1.0_quant_2018_06_29.zip .
+unzip coco_ssd_mobilenet_v1_1.0_quant_2018_06_29.zip -d model_dir
+(You should see two files in model_dir directory: detect.tflite and labelmap.txt. The .tflite file is our model)
+
+21. create file tflite_cam_or.py from the same: 
+(ref: https://www.digikey.com/en/maker/projects/how-to-perform-object-detection-with-tensorflow-lite-on-raspberry-pi/b929e1519c7c43d5b2c6f89984883588)
+
+cd ~/Src/Python/tflite
+source tflite-env/bin/activate
+cd object_detection
+python tflite_cam_or.py --modeldir=coco_ssd_mobilenet_v1
+
+it should work
+
+22. trim down tflite_cam_or.py, change coco_ssd_mobilenet_v1 to model_dir
+
+23-24 are no longer needed, go directly to 25
+--------------------
+--- 23. install espeak and test:
+--- --- at /home/pi: 
+--- sudo apt-get install espeak
+--- espeak "Bill Huang" 2>/dev/null
+--- espeak -ven+m1 "James Huang" 2>/dev/null
+--- espeak -ven+f2 "James Huang" 2>/dev/null
+--- espeak -ven+f3 -g30 "James Huang" 2>/dev/null
+
+--- 24. install num2words for python
+--- sudo pip install num2words
+
+--- cd ~/Src/Python/tflite/
+--- sudo git clone https://github.com/DexterInd/Raspberry_Pi_Speech/
+--- cd Raspberry_Pi_Speech
+---  sudo python speak_count.py
+
+--- python speak_count.py will not work, import error
+--- this seems to be due to num2words was installed by sudo pip install
+
+--- so I went to 
+--- cd ~/Src/Python/tflite 
+--- source tflite-env/bin/activate
+--- python -m pip install num2words
+
+--- Fixed it
+-------------------------
+25. install espeak-ng: 
+on pi terminal, 
+
+sudo apt-get install espeak-ng 
+
+Then install python module by doing the following:
+
+cd ~/Src/Python/tflite 
+source tflite-env/bin/activate
+pip install espeakng
+
+change tflite_cam_or.py to use espeakng :) Much faster
+
+- Pi menu > Preferences > Recommended Software > Programming > check Visual Studio Code
+This will take 20 mins or so to install.
+- go to object_detection folder, type "code ."
+- edit tflite_cam_or.py and other *.py files
+- install python extension for vs code from microsoft
+
+26. ultrasonic wiring and programming
+GPIO PINS:
+2  - VCC  (5 V)
+7  - TRG
+11 - ECH	 
+14, 20  - GND
+
+Existing Powerful uses PINS: 
+4 - (5V)
+6 - GND
+
+27. humming; reorg code structure
+1 - VCC (3.3V)  - tried 17, not working
+29 - I/O            - tried 40, not working
+39 - GND
+
+terminal: pinout -c
+
+28. raspberry pi has git, but not git-gui, so
+sudo apt-get install git-gui
+
+and play with it
+multiple users on the same machine, different repos connecting to github: 
+(https://medium.com/@pinglinh/how-to-have-2-github-accounts-on-one-machine-windows-69b5b4c5b14e)
+ssh-keygen -t rsa -C “buffalobillhuang@gmail.com”
+
+Generating public/private rsa key pair. Enter file in which to save the key:  ~/.ssh/id_rsa_buffalobillhuang  (default is id_rsa and could overwrite existing one)
+
+Enter passphrase (empty for no passphrase):  (enter)
+
+Enter same passphrase again: (enter)
+
+ls -al ~/.ssh
+
+nano (code) ~/.ssh/id_rsa_buffalobillhuang.pub
+
+copy the content, go to github.com, add the public key:
+GitHub account → Settings → SSH and GPG keys  
+give a name that is easy to remember where this is from
+
+do this: (or edit in: git config --local -e, under core, add sshCommand=.... as follows)
+
+git config core.sshCommand=ssh -i ~/.ssh/id_rsa_buffalobillhuang
+
+add username (any) and email (needs to match github)
+git config user.name "Bill"  (used buffalobillhuang anyway)
+git config user.email buffalobillhuang@gmail.com
+
+git clone https://buffalobillhuang:github.com:buffalobillhuang/cache
+git fetch
+
+... edit some files locally
+get add .
+git commit -m "checking in)
+git push origin main
+
+should work
+{
+git add remote http://JamesHuang2004@github.com/JamesHuang2004/object_detection
+git config --global credential.helper 'cache --timeout=600'
+[or: git remote set-url origin git@github.com:JamesHuang2004/object_detection.git]
+ssh-keygen ...
+}
+29. from pi, open a brower and go to https://netron.app, upload the model file from model_dir (detect.tflite), and save the output model detect.tflite.png file on desktop. ftp back to windows (for later ppt usage)
+
+30. make PI image using 64 GB tf card (ex-large FAT), and then 32 GB tf card. May 19th, 2021 morning and noon
+
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+31. 32 GB tf-card repurposed for James' training
+
+32. sudo i2cdetect -y 1    --- this command list the address of i2c devices
+
+pi@raspberrypi2:~ $ sudo i2cdetect -y 1
+     0  1  2  3  4  5  6  7  8  9  a  b  c  d  e  f
+00:          -- -- -- -- -- -- -- -- -- -- -- -- -- 
+10: -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- 
+20: -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- 
+30: -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- 
+40: -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- 
+50: -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- 
+60: -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- 
+70: -- -- -- -- -- -- -- --     
+
+
+
+33. download edex-ui from 
+https://awesomeopensource.com/project/GitSquared/edex-ui
+
+releases > select arm7l version appimage: 
+
+eDEX-UI-Linux-armv7l.AppImage
+
+ to download; then chmod a+x ..; and run it.
+
+Also do 
+
+echo "alias edex=~/Desktop/eDEX-UI-Linux-armv7l.AppImage" >> ~/.bashrc
+source ~/.bashrc
+
+type 
+edex 
+
+run it
+
+
+
+
+
+
+

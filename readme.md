@@ -1,3 +1,4 @@
+<p><img src="img/winter.jpeg" height="168"></p>
 
 <UL>
   <LI><a href="docs/chatGPT.pptx" target=_blank>ChatGPT talk in Feb 2023 </a></LI>
@@ -13,8 +14,6 @@
 <hr>
 <br><img src="img/spacex.jpg" height="200">
 
-
 -->
 <hr>
-<p><img src="img/winter.jpeg" height="168"></p>
 <p> Eventually, all things merge into one, and a river runs through it.</p>
